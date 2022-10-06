@@ -52,7 +52,6 @@ set(MAIN_LIBRARIES
   boost_thread
   boost_date_time
   crypto
-  cpprest
   paho-mqttpp3
   paho-mqtt3as
 )
