@@ -105,9 +105,6 @@ int main(int argc, char **argv) {
         bool turnLEDsOn = teton::computeLEDSignalFromImageBrightness(frame);
 
 #ifndef TETON_BENCHMARK
-        // Here normally I would use the steady_clock instead of the high_resolution on
-        // Accordind to CPP reference its use should be avoided
-        // https://en.cppreference.com/w/cpp/chrono/high_resolution_clock
         std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
         auto elapsedTime = timeToProcessFrame.count();
         std::cout << "Frame " << movingAvgCount << "\n";
