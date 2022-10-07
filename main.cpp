@@ -73,6 +73,8 @@ int main(int argc, char **argv) {
     auto timeOfLastLEDControlSignalSent = std::chrono::high_resolution_clock::now();
 
     auto maxProcessingTime = std::chrono::duration<double>(0);
+    double movingAvgTime = 0.0;
+    double movingAvgCount = 0;
 
     // Do inference until node is stopped
     while (!sigInterrupt) {
@@ -82,6 +84,8 @@ int main(int argc, char **argv) {
 
         // If we have not captured a frame for 20 seconds, something is really wrong
         if (frame.empty()) {
+            // TODO remove
+            break;
             auto timeSinceLastCapture = std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::high_resolution_clock::now() - timeOfLastCapture
             );
@@ -100,15 +104,19 @@ int main(int argc, char **argv) {
         // Determine whether we should turn the LEDs on or off
         bool turnLEDsOn = teton::computeLEDSignalFromImageBrightness(frame);
 
+#ifndef TETON_BENCHMARK
         // Here normally I would use the steady_clock instead of the high_resolution on
         // Accordind to CPP reference its use should be avoided
         // https://en.cppreference.com/w/cpp/chrono/high_resolution_clock
         std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
+        auto elapsedTime = timeToProcessFrame.count();
+        std::cout << "Frame " << movingAvgCount << "\n";
+        std::cout << "elapsed time: " << elapsedTime  << "s\n";
+        movingAvgTime += (elapsedTime - movingAvgTime) / movingAvgCount;
+        std::cout << "moving  avg : " << timeToProcessFrame.count() << "s\n";
+        movingAvgCount += 1;
+#endif //TETON_BENCHMARK
 
-        if (timeToProcessFrame > maxProcessingTime) {
-            std::cout << "elapsed time: " << timeToProcessFrame.count() << "s\n";
-            maxProcessingTime = timeToProcessFrame;
-        }
 
         // Send signal to turn LEDs on/off
         auto timeSinceLastLEDControlSignalSent = std::chrono::duration_cast<std::chrono::seconds>(
