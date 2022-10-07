@@ -74,11 +74,15 @@ int main(int argc, char **argv) {
 
     auto maxProcessingTime = std::chrono::duration<double>(0);
 
+    auto FPSTime = std::chrono::high_resolution_clock::now();
+    auto FPSFrames = 0;
+
     // Do inference until node is stopped
     while (!sigInterrupt) {
         // Capture a new frame
         cv::Mat frame;
         cap >> frame;
+        FPSFrames += 1;
 
         // If we have not captured a frame for 20 seconds, something is really wrong
         if (frame.empty()) {
@@ -134,9 +138,16 @@ int main(int argc, char **argv) {
         }
 #endif
     }
+    std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - FPSTime;
 
     // Clean up
     client.disconnect();
+
+
+    auto fps = FPSFrames / duration.count();
+    std::cout << "frames: "  << FPSFrames << "\n";
+    std::cout << "time: "  << duration.count() << "\n";
+    std::cout << "FPS: "  << fps;
 
     return 0;
 }
