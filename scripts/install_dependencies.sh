@@ -25,7 +25,7 @@ sudo apt install -y \
     make \
     cmake \
     build-essential \
-    libboost-dev \
+    libboost-all-dev \
     libssl-dev \
     doxygen \
     graphviz \
