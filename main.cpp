@@ -72,6 +72,8 @@ int main(int argc, char **argv) {
     auto timeOfLastCapture = std::chrono::high_resolution_clock::now();
     auto timeOfLastLEDControlSignalSent = std::chrono::high_resolution_clock::now();
 
+    auto maxProcessingTime = std::chrono::duration<double>(0);
+
     // Do inference until node is stopped
     while (!sigInterrupt) {
         // Capture a new frame
@@ -97,6 +99,16 @@ int main(int argc, char **argv) {
 
         // Determine whether we should turn the LEDs on or off
         bool turnLEDsOn = teton::computeLEDSignalFromImageBrightness(frame);
+
+        // Here normally I would use the steady_clock instead of the high_resolution on
+        // Accordind to CPP reference its use should be avoided
+        // https://en.cppreference.com/w/cpp/chrono/high_resolution_clock
+        std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
+
+        if (timeToProcessFrame > maxProcessingTime) {
+            std::cout << "elapsed time: " << timeToProcessFrame.count() << "s\n";
+            maxProcessingTime = timeToProcessFrame;
+        }
 
         // Send signal to turn LEDs on/off
         auto timeSinceLastLEDControlSignalSent = std::chrono::duration_cast<std::chrono::seconds>(

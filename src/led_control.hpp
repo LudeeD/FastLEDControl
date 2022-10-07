@@ -7,7 +7,12 @@ namespace teton {
 
 // TODO: Implement this function. Make it as fast as possible.
 bool computeLEDSignalFromImageBrightness(const cv::Mat &image) {
-    return false;
+
+
+    cv::Scalar tempVal = cv::mean( image );
+    float myMAtMean = tempVal.val[0];
+
+    return myMAtMean < 40;
 }
 
 }  // namespace teton
