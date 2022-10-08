@@ -118,11 +118,15 @@ int main(int argc, char **argv) {
 
 #ifdef TETON_BENCHMARK
         std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
+        if (timeToProcessFrame > maxProcessingTime) {
+            maxProcessingTime = timeToProcessFrame;
+        } 
         auto elapsedTime = timeToProcessFrame.count();
         std::cout << "Frame " << movingAvgCount << std::endl;
         std::cout << "elapsed time: " << elapsedTime  << std::endl;
         movingAvgTime += (elapsedTime - movingAvgTime) / movingAvgCount;
         std::cout << "moving  avg : " << timeToProcessFrame.count() << "s" << std::endl;
+        std::cout << "max time    : " << maxProcessingTime.count() << "s" << std::endl;
         movingAvgCount += 1;
 #endif //TETON_BENCHMARK
 
