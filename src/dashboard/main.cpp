@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
   }
 
   // MQTT client connection setup
-  std::string clientId_LOCAL =
+  const std::string clientId_LOCAL =
       "FastLEDControl_" + tetonRoomNoStr + "_" + tetonBedNoStr;
 
   teton::network::Client client("localhost:1883", clientId_LOCAL);
