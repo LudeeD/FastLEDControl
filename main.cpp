@@ -85,9 +85,6 @@ int main(int argc, char **argv) {
     auto timeOfLastCapture = std::chrono::high_resolution_clock::now();
     auto timeOfLastLEDControlSignalSent = std::chrono::high_resolution_clock::now();
 
-    auto maxProcessingTime = std::chrono::duration<double>(0);
-    double movingAvgTime = 0.0;
-    double movingAvgCount = 0;
     bool   lastSignalSent = false;
 
     // Do inference until node is stopped
@@ -117,6 +114,10 @@ int main(int argc, char **argv) {
         bool turnLEDsOn = teton::computeLEDSignalFromImageBrightness(frame);
 
 #ifdef TETON_BENCHMARK
+        static auto maxProcessingTime = std::chrono::duration<double>(0);
+        static double movingAvgTime = 0.0;
+        static double movingAvgCount = 0;
+
         std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
         if (timeToProcessFrame > maxProcessingTime) {
             maxProcessingTime = timeToProcessFrame;
