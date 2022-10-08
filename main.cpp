@@ -49,11 +49,16 @@ int main(int argc, char **argv) {
     // Query static environment variables
     std::string tetonRoomNoStr;
     std::string tetonBedNoStr;
-    teton::utils::getEnvVar("TETON_BED_NO", tetonBedNoStr);
-    teton::utils::getEnvVar("TETON_ROOM_NO", tetonRoomNoStr);
+    bool nice = 
+      teton::utils::getEnvVar("TETON_BED_NO", tetonBedNoStr) && 
+      teton::utils::getEnvVar("TETON_ROOM_NO", tetonRoomNoStr);
+
+    if (!nice) return -1;
 
     // MQTT client connection setup
     std::string clientId = "FastLEDControl_" + tetonRoomNoStr + "_" + tetonBedNoStr;
+
+    std::cout << clientId << "\n";
     teton::network::Client client("localhost:1883", clientId);
     if (!client.connect()) {
         std::string errorString = "Room " + tetonRoomNoStr + " Bed " + tetonBedNoStr + " Failed to connect to local MQTT master";
@@ -75,6 +80,7 @@ int main(int argc, char **argv) {
     auto maxProcessingTime = std::chrono::duration<double>(0);
     double movingAvgTime = 0.0;
     double movingAvgCount = 0;
+    bool   lastSignalSent = false;
 
     // Do inference until node is stopped
     while (!sigInterrupt) {
@@ -114,13 +120,13 @@ int main(int argc, char **argv) {
         movingAvgCount += 1;
 #endif //TETON_BENCHMARK
 
-
         // Send signal to turn LEDs on/off
         auto timeSinceLastLEDControlSignalSent = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::high_resolution_clock::now() - timeOfLastLEDControlSignalSent
         );
-        if (timeSinceLastLEDControlSignalSent.count() > LEDControlSignalPeriod) {
+        if (timeSinceLastLEDControlSignalSent.count() > LEDControlSignalPeriod || lastSignalSent != turnLEDsOn) {
             timeOfLastLEDControlSignalSent = std::chrono::high_resolution_clock::now();
+            lastSignalSent = turnLEDsOn;
             client.publish(turnLEDsOn, clientId, tetonRoomNoStr, tetonBedNoStr, topicLED);
         }
 
