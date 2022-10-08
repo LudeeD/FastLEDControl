@@ -5,7 +5,7 @@ project(FastLEDControl VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-option(TETON_DEBUG "Build the project using debugging code" ON)
+option(TETON_DEBUG "Build the project using debugging code" OFF)
 if(TETON_DEBUG)
   add_definitions(-DTETON_DEBUG)
   SET(CMAKE_BUILD_TYPE Debug)
@@ -15,7 +15,7 @@ else()
 endif()
 message("-- Building using ${CMAKE_BUILD_TYPE} mode")
 
-option(TETON_BENCHMARK "Build the project using benchmark code" ON)
+option(TETON_BENCHMARK "Build the project using benchmark code" OFF)
 if(TETON_BENCHMARK)
   add_definitions(-DTETON_BENCHMARK)
   message("-- Building with benchmarking enabled")
@@ -56,7 +56,11 @@ set(MAIN_LIBRARIES
   paho-mqtt3as
 )
 
+
 add_executable(${PROJECT_NAME} ${MAIN_SOURCES})
+target_compile_options(${PROJECT_NAME} PRIVATE
+  -Wall -Wextra -Wpedantic
+)
 target_link_libraries(${PROJECT_NAME} ${MAIN_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
 
@@ -81,5 +85,8 @@ set(MAIN_LIBRARIES_DASHBOARD
 )
 
 add_executable(${PROJECT_NAME}_Dashboard ${MAIN_DASHBOARD_SOURCES})
+target_compile_options(${PROJECT_NAME}_Dashboard PRIVATE
+  -Wall -Wextra -Wpedantic
+)
 target_link_libraries(${PROJECT_NAME}_Dashboard ${MAIN_LIBRARIES_DASHBOARD})
 target_include_directories(${PROJECT_NAME}_Dashboard PUBLIC include/)
