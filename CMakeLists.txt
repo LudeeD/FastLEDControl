@@ -56,6 +56,37 @@ set(MAIN_LIBRARIES
   paho-mqtt3as
 )
 
+
 add_executable(${PROJECT_NAME} ${MAIN_SOURCES})
+target_compile_options(${PROJECT_NAME} PRIVATE
+  -Wall -Wextra -Wpedantic
+)
 target_link_libraries(${PROJECT_NAME} ${MAIN_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
+
+# Create an executable
+set(MAIN_DASHBOARD_SOURCES
+  src/dashboard/main.cpp
+  src/utils/utils.cpp
+  src/network/client.cpp
+  src/network/circular_buffer.cpp
+)
+
+set(MAIN_LIBRARIES_DASHBOARD
+  ${CUDA_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
+  ${OpenCV_LIBS}
+  boost_system
+  boost_thread
+  boost_date_time
+  crypto
+  paho-mqttpp3
+  paho-mqtt3as
+)
+
+add_executable(${PROJECT_NAME}_Dashboard ${MAIN_DASHBOARD_SOURCES})
+target_compile_options(${PROJECT_NAME}_Dashboard PRIVATE
+  -Wall -Wextra -Wpedantic
+)
+target_link_libraries(${PROJECT_NAME}_Dashboard ${MAIN_LIBRARIES_DASHBOARD})
+target_include_directories(${PROJECT_NAME}_Dashboard PUBLIC include/)
