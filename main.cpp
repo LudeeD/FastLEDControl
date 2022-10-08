@@ -14,6 +14,8 @@
 // Generated header with information from CMake
 #include "version_config.h"
 
+const std::string TOPIC_LED_REQUEST_STATUS = "local/update/led";  // Topic for LED signal
+
 volatile sig_atomic_t sigInterrupt = 0;
 void sig_handler(int signo) {
     if (signo == SIGINT) {
@@ -32,7 +34,8 @@ int main(int argc, char **argv) {
 
     if (argc < 2) {
         printf("ERROR: Path to video file not provided...\n");
-        printf("  Usage: %s <path_to_video_file>\n", argv[0]);
+        printf("  Usage with video file: %s <path_to_video_file>\n", argv[0]);
+        printf("  Usage with webcam    : %s /dev/video0 \n", argv[0]);
         return -1;
     }
 
@@ -53,18 +56,23 @@ int main(int argc, char **argv) {
       teton::utils::getEnvVar("TETON_BED_NO", tetonBedNoStr) && 
       teton::utils::getEnvVar("TETON_ROOM_NO", tetonRoomNoStr);
 
-    if (!nice) return -1;
+    if (!nice) {
+        std::cerr
+            << "\033[1;31mEnvVar TETON_BED_NO or TETON_ROOM_NO not present!\033[0m"
+            << std::endl;
+        return -1;
+    }
 
     // MQTT client connection setup
-    std::string clientId = "FastLEDControl_" + tetonRoomNoStr + "_" + tetonBedNoStr;
+    const std::string clientId = "FastLEDControl_" + tetonRoomNoStr + "_" + tetonBedNoStr;
 
-    std::cout << clientId << "\n";
     teton::network::Client client("localhost:1883", clientId);
     if (!client.connect()) {
         std::string errorString = "Room " + tetonRoomNoStr + " Bed " + tetonBedNoStr + " Failed to connect to local MQTT master";
         std::cerr << errorString << std::endl;
         return -1;
     }
+    client.subscribe(TOPIC_LED_REQUEST_STATUS);
 
     // Create input stream
     cv::VideoCapture cap(argv[1]);
@@ -90,8 +98,6 @@ int main(int argc, char **argv) {
 
         // If we have not captured a frame for 20 seconds, something is really wrong
         if (frame.empty()) {
-            // TODO remove
-            break;
             auto timeSinceLastCapture = std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::high_resolution_clock::now() - timeOfLastCapture
             );
@@ -110,13 +116,13 @@ int main(int argc, char **argv) {
         // Determine whether we should turn the LEDs on or off
         bool turnLEDsOn = teton::computeLEDSignalFromImageBrightness(frame);
 
-#ifndef TETON_BENCHMARK
+#ifdef TETON_BENCHMARK
         std::chrono::duration<double> timeToProcessFrame = std::chrono::high_resolution_clock::now() - timeOfLastCapture;
         auto elapsedTime = timeToProcessFrame.count();
-        std::cout << "Frame " << movingAvgCount << "\n";
-        std::cout << "elapsed time: " << elapsedTime  << "s\n";
+        std::cout << "Frame " << movingAvgCount << std::endl;
+        std::cout << "elapsed time: " << elapsedTime  << std::endl;
         movingAvgTime += (elapsedTime - movingAvgTime) / movingAvgCount;
-        std::cout << "moving  avg : " << timeToProcessFrame.count() << "s\n";
+        std::cout << "moving  avg : " << timeToProcessFrame.count() << "s" << std::endl;
         movingAvgCount += 1;
 #endif //TETON_BENCHMARK
 
@@ -124,7 +130,11 @@ int main(int argc, char **argv) {
         auto timeSinceLastLEDControlSignalSent = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::high_resolution_clock::now() - timeOfLastLEDControlSignalSent
         );
-        if (timeSinceLastLEDControlSignalSent.count() > LEDControlSignalPeriod || lastSignalSent != turnLEDsOn) {
+
+        // check if we received an update request
+        auto request = client.getBool(TOPIC_LED_REQUEST_STATUS);
+
+        if (timeSinceLastLEDControlSignalSent.count() > LEDControlSignalPeriod || lastSignalSent != turnLEDsOn || std::get<0>(request) ) {
             timeOfLastLEDControlSignalSent = std::chrono::high_resolution_clock::now();
             lastSignalSent = turnLEDsOn;
             client.publish(turnLEDsOn, clientId, tetonRoomNoStr, tetonBedNoStr, topicLED);

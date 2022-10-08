@@ -7,6 +7,9 @@
 // Generated header with information from CMake
 #include "version_config.h"
 
+const std::string TOPIC_LED_STATUS = "local/signal/led";  // Topic for LED signal
+const std::string TOPIC_LED_REQUEST_STATUS = "local/update/led";  // Topic for LED signal
+
 volatile sig_atomic_t sigInterrupt = 0;
 void sig_handler(int signo) {
   if (signo == SIGINT) {
@@ -49,14 +52,18 @@ int main(int argc, char **argv) {
   bool nice = teton::utils::getEnvVar("TETON_BED_NO", tetonBedNoStr) &&
               teton::utils::getEnvVar("TETON_ROOM_NO", tetonRoomNoStr);
 
-  if (!nice)
+  if (!nice) {
+    std::cerr
+        << "\033[1;31mEnvVar TETON_BED_NO or TETON_ROOM_NO not present!\033[0m"
+        << std::endl;
     return -1;
+  }
 
   // MQTT client connection setup
-  std::string clientId =
+  std::string clientId_LOCAL =
       "FastLEDControl_" + tetonRoomNoStr + "_" + tetonBedNoStr;
 
-  teton::network::Client client("localhost:1883", clientId);
+  teton::network::Client client("localhost:1883", clientId_LOCAL);
 
   if (!client.connect()) {
     std::string errorString = "Room " + tetonRoomNoStr + " Bed " +
@@ -66,24 +73,29 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  client.subscribe("local/signal/led");
+  client.subscribe(TOPIC_LED_STATUS);
 
   std::thread readInput(input_handler);
 
   while (!sigInterrupt) {
-    auto [something, room, bed, ret, clientId, timestamp] =
+    bool something, ret;
+    std::string room, bed, clientId, timestamp;
+    std::tie(something, room, bed, ret, clientId, timestamp) =
         client.getBool("local/signal/led");
     if (something) {
-      std::cout << clientId << " " << ret << "\n";
+      std::cout << "[" << timestamp << "]"
+                << "[" << clientId << "]"
+                << "Room : " << room << " "
+                << "Bed : " << bed   << " "
+                << "Led : " << ret << std::endl;
     }
     if (sendUpdate) {
-      std::cout << "Sending update request" << "\n";
+      client.publish(sendUpdate, clientId_LOCAL, tetonRoomNoStr, tetonBedNoStr,
+                     TOPIC_LED_REQUEST_STATUS);
       sendUpdate = false;
     }
     boost::this_thread::sleep(boost::posix_time::milliseconds(10));
   }
-
-  std::cin.putback('\n');
 
   readInput.join();
 }
